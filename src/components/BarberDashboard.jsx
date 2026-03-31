@@ -1,4 +1,12 @@
-export default function BarberDashboard({ user, state, onChangeState, onLogout }) {
+import { useState } from "react";
+import { useQueue } from "../hooks/useQueue";
+import { callNextClient } from "../lib/bookings";
+
+export default function BarberDashboard({ user, barberId, state, onChangeState, onLogout }) {
+  const [actionError, setActionError] = useState("");
+  const [isCallingNext, setIsCallingNext] = useState(false);
+  const { queue, loading, error } = useQueue(barberId);
+
   const handleStatusToggle = () => {
     onChangeState((previous) => ({
       ...previous,
@@ -6,15 +14,21 @@ export default function BarberDashboard({ user, state, onChangeState, onLogout }
     }));
   };
 
-  const handleNextClient = () => {
-    onChangeState((previous) => {
-      if (previous.queueCount === 0) return previous;
-      return {
+  const handleNextClient = async () => {
+    if (!barberId) return;
+    setActionError("");
+    setIsCallingNext(true);
+    try {
+      await callNextClient(barberId);
+      onChangeState((previous) => ({
         ...previous,
-        queueCount: previous.queueCount - 1,
         currentTicket: previous.currentTicket + 1,
-      };
-    });
+      }));
+    } catch (err) {
+      setActionError(err?.message || "Failed to call next client.");
+    } finally {
+      setIsCallingNext(false);
+    }
   };
 
   return (
@@ -45,17 +59,20 @@ export default function BarberDashboard({ user, state, onChangeState, onLogout }
 
         <div className="rounded-xl border border-border bg-secondary p-4">
           <p className="text-sm text-primary/70">Queue count</p>
-          <p className="mt-1 text-3xl font-semibold text-primary">{state.queueCount}</p>
+          <p className="mt-1 text-3xl font-semibold text-primary">{loading ? "..." : queue.length}</p>
           <p className="mt-3 text-sm text-primary/70">Current ticket: #{state.currentTicket}</p>
         </div>
 
         <button
           onClick={handleNextClient}
-          disabled={!state.isOpen || state.queueCount === 0}
+          disabled={!barberId || !state.isOpen || queue.length === 0 || isCallingNext}
           className="w-full rounded-xl bg-primary px-4 py-3 text-sm font-medium text-white shadow-sm transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          NEXT CLIENT
+          {isCallingNext ? "PROCESSING..." : "NEXT CLIENT"}
         </button>
+        {(error || actionError) && (
+          <p className="text-sm text-primary/70">{actionError || error}</p>
+        )}
       </div>
     </section>
   );

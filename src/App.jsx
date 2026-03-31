@@ -41,6 +41,7 @@ function App() {
   const [user, setUser] = useState(null);
   const [currentScreen, setCurrentScreen] = useState("role-selection");
   const [selectedBarberId, setSelectedBarberId] = useState(null);
+  const [managedBarberId, setManagedBarberId] = useState(null);
   const [barbers, setBarbers] = useState(DEFAULT_BARBERS);
   const [isBarbersLoading, setIsBarbersLoading] = useState(false);
   const [barbersError, setBarbersError] = useState("");
@@ -60,6 +61,7 @@ function App() {
       if (parsed.user) setUser(parsed.user);
       if (parsed.currentScreen) setCurrentScreen(parsed.currentScreen);
       if (parsed.selectedBarberId) setSelectedBarberId(parsed.selectedBarberId);
+      if (parsed.managedBarberId) setManagedBarberId(parsed.managedBarberId);
       if (parsed.barbers) setBarbers(parsed.barbers);
       if (parsed.barberDashboard) setBarberDashboard(parsed.barberDashboard);
     } catch {
@@ -75,11 +77,12 @@ function App() {
         user,
         currentScreen,
         selectedBarberId,
+        managedBarberId,
         barbers,
         barberDashboard,
       })
     );
-  }, [role, user, currentScreen, selectedBarberId, barbers, barberDashboard]);
+  }, [role, user, currentScreen, selectedBarberId, managedBarberId, barbers, barberDashboard]);
 
   const loadBarbers = useCallback(async () => {
     setIsBarbersLoading(true);
@@ -104,11 +107,18 @@ function App() {
     [barbers, selectedBarberId]
   );
 
+  const resolvedManagedBarberId = useMemo(() => {
+    if (managedBarberId) return managedBarberId;
+    if (!barbers.length) return null;
+    return barbers[0].id;
+  }, [managedBarberId, barbers]);
+
   const logout = () => {
     setRole(null);
     setUser(null);
     setCurrentScreen("role-selection");
     setSelectedBarberId(null);
+    setManagedBarberId(null);
     localStorage.removeItem(STORAGE_KEY);
   };
 
@@ -121,6 +131,10 @@ function App() {
   const handleBarberSubmit = (barberData) => {
     setRole("barber");
     setUser(barberData);
+    const matchByName = barbers.find(
+      (barber) => barber.name.toLowerCase().trim() === barberData.name.toLowerCase().trim()
+    );
+    setManagedBarberId(matchByName?.id ?? barbers[0]?.id ?? null);
     setBarberDashboard((prev) => ({
       ...prev,
       isOpen: true,
@@ -170,6 +184,7 @@ function App() {
         {currentScreen === "barber-detail" && selectedBarber && (
           <BarberDetail
             barber={selectedBarber}
+            user={user}
             onBack={() => setCurrentScreen("client-dashboard")}
           />
         )}
@@ -177,6 +192,7 @@ function App() {
         {currentScreen === "barber-dashboard" && (
           <BarberDashboard
             user={user}
+            barberId={resolvedManagedBarberId}
             state={barberDashboard}
             onChangeState={setBarberDashboard}
             onLogout={logout}
