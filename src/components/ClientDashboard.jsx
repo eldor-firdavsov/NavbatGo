@@ -39,7 +39,15 @@ function BarberCard({ barber, onView }) {
   );
 }
 
-export default function ClientDashboard({ user, barbers, onViewBarber, onLogout }) {
+export default function ClientDashboard({
+  user,
+  barbers,
+  isLoading,
+  error,
+  onRetry,
+  onViewBarber,
+  onLogout,
+}) {
   return (
     <section className="w-full max-w-2xl">
       <div className="mb-6 flex items-center justify-between gap-4">
@@ -55,11 +63,32 @@ export default function ClientDashboard({ user, barbers, onViewBarber, onLogout 
         </button>
       </div>
 
-      <div className="space-y-4">
-        {barbers.map((barber) => (
-          <BarberCard key={barber.id} barber={barber} onView={onViewBarber} />
-        ))}
-      </div>
+      {isLoading ? (
+        <div className="rounded-xl border border-border bg-secondary p-5 text-sm text-primary/70">
+          Loading barbers from Supabase...
+        </div>
+      ) : error ? (
+        <div className="rounded-xl border border-border bg-secondary p-5">
+          <p className="text-sm text-primary/80">Could not fetch Supabase data.</p>
+          <p className="mt-1 text-xs text-primary/60">{error}</p>
+          <button
+            onClick={onRetry}
+            className="mt-4 rounded-xl border border-border bg-white px-3 py-2 text-sm text-primary shadow-sm transition hover:bg-secondary"
+          >
+            Retry
+          </button>
+        </div>
+      ) : barbers.length === 0 ? (
+        <div className="rounded-xl border border-border bg-secondary p-5 text-sm text-primary/70">
+          No barber records found in Supabase.
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {barbers.map((barber) => (
+            <BarberCard key={barber.id} barber={barber} onView={onViewBarber} />
+          ))}
+        </div>
+      )}
     </section>
   );
 }

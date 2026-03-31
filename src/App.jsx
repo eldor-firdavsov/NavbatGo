@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import RoleSelection from "./components/RoleSelection";
 import ClientForm from "./components/ClientForm";
 import BarberForm from "./components/BarberForm";
 import ClientDashboard from "./components/ClientDashboard";
 import BarberDashboard from "./components/BarberDashboard";
 import BarberDetail from "./components/BarberDetail";
+import { fetchBarbers } from "./lib/barbers";
 
 const STORAGE_KEY = "barberqueue_state";
 
@@ -41,6 +42,8 @@ function App() {
   const [currentScreen, setCurrentScreen] = useState("role-selection");
   const [selectedBarberId, setSelectedBarberId] = useState(null);
   const [barbers, setBarbers] = useState(DEFAULT_BARBERS);
+  const [isBarbersLoading, setIsBarbersLoading] = useState(false);
+  const [barbersError, setBarbersError] = useState("");
   const [barberDashboard, setBarberDashboard] = useState({
     isOpen: true,
     queueCount: 4,
@@ -77,6 +80,24 @@ function App() {
       })
     );
   }, [role, user, currentScreen, selectedBarberId, barbers, barberDashboard]);
+
+  const loadBarbers = useCallback(async () => {
+    setIsBarbersLoading(true);
+    setBarbersError("");
+
+    try {
+      const fetchedBarbers = await fetchBarbers();
+      setBarbers(fetchedBarbers);
+    } catch (error) {
+      setBarbersError(error?.message || "Failed to load barbers from Supabase.");
+    } finally {
+      setIsBarbersLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadBarbers();
+  }, [loadBarbers]);
 
   const selectedBarber = useMemo(
     () => barbers.find((barber) => barber.id === selectedBarberId) ?? null,
@@ -135,6 +156,9 @@ function App() {
           <ClientDashboard
             user={user}
             barbers={barbers}
+            isLoading={isBarbersLoading}
+            error={barbersError}
+            onRetry={loadBarbers}
             onLogout={logout}
             onViewBarber={(barberId) => {
               setSelectedBarberId(barberId);
