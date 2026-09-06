@@ -12,7 +12,7 @@ function LanguageSelection() {
                     <img src="./Scissor.png" alt="BarberUp" className="w-7 h-7 object-contain invert" onError={e => e.target.style.display = 'none'} />
                 </div>
                 <h1 className="text-3xl font-bold text-[var(--text-primary)] mb-2">{t('brand.name')}</h1>
-                <p className="text-sm text-[var(--text-secondary)]">{t('language.title')}</p>
+                <p className="text-sm text-[var(--text-secondary)]">{t('auth.language.title')}</p>
             </div>
 
             <div className="space-y-3">
